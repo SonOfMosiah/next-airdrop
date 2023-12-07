@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@vercel/speed-insights':
+    specifier: ^1.0.0
+    version: 1.0.0
   connectkit:
     specifier: ^1.5.3
     version: 1.5.3(@babel/core@7.23.5)(react-dom@18.2.0)(react-is@16.13.1)(react@18.2.0)(viem@1.19.11)(wagmi@1.4.8)
@@ -1211,6 +1214,11 @@ packages:
   /@ungap/structured-clone@1.2.0:
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
     dev: true
+
+  /@vercel/speed-insights@1.0.0:
+    resolution: {integrity: sha512-5blmCVGGPn+3BqwBPb1jc3OnzRozNuLgJVr7xH6XjxCTvocs7z/Bml7lo+JzLKUXR1Q35qI/PlEllmNbZmP9Ew==}
+    requiresBuild: true
+    dev: false
 
   /@wagmi/connectors@3.1.6(@types/react@18.2.42)(react@18.2.0)(typescript@5.3.3)(viem@1.19.11):
     resolution: {integrity: sha512-71ZW9ETmzFJbetMfGAUEtJtTyDGetAT/pkdsMwyvH+MBPoZuqHUQ7NxgvhSo9ddsAzsEbJJLCaJdZodj3CbosA==}
