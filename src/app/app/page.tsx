@@ -121,85 +121,86 @@ export default function Airdrop() {
         } });
 
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center p-24">
+        <main className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100 dark:bg-gray-800">
             {!isConnected ? <Connect /> : null}
-            <div className="mb-8"/>
-            <div {...getRootProps()} className="border-dashed border-4 border-gray-300 rounded-md p-4 w-full max-w-xl text-center">
-                <input {...getInputProps()} />
-                <p>Drag & drop some files here, or click to select files</p>
-                <em>(Only *.csv and *.json files will be accepted)</em>
-            </div>
-            <div className="mb-4"/>
-            <div className="flex flex-col space-y-4 mb-4">
-                <label className="text-lg font-medium text-gray-700">
-                    Token Address:
-                </label>
-                <input
-                    type="text"
-                    placeholder="Token Address"
-                    value={tokenAddress}
-                    onChange={(e) => setTokenAddress(e.target.value as Address)}
-                    className="p-2 rounded-md border border-gray-300"
-                />
-                <label className="text-lg font-medium text-gray-700">
-                    Token ID:
-                </label>
-                <input
-                    type="text"
-                    placeholder="Token ID"
-                    value={String(tokenId)}
-                    onChange={(e) => setTokenId(BigInt(e.target.value))}
-                    className="p-2 rounded-md border border-gray-300"
-                />
-                {isConnected ? isApprovedForAll ? <button
-                    onClick={() => write?.()}
-                    disabled={!config || isLoading || isError}
-                    className="bg-blue-500 text-white p-2 rounded-md"
-                >
-                    {isLoading ? 'Submitting...' : 'Submit'}
-                </button> : <button
-                    onClick={() => approveWrite?.()}
-                    disabled={!approveConfig || isApproveLoading || isApproveError || isApprovedForAll}
-                    className="bg-blue-500 text-white p-2 rounded-md"
-                >
-                    {isLoading ? 'Submitting approval...' : 'Approve'}
-                </button> : null }
-            </div>
-            { parsingAddresses ?
-                <>
-                    <div>{`uploaded ${numberOfAddresses} addresses`}</div>
-                    <div>Parsing addresses and removing non-ERC1155 receivers...</div>
-                </>
-                 : null }
-
-            {!parsingAddresses && numberOfAddresses > 0 && (
-                <div>
-                    <div className="mb-4 border border-gray-300 rounded-md p-4">
-                        <h2 className="flex justify-between cursor-pointer" onClick={() => setShowAddresses(!showAddresses)}>
-                            {showAddresses ? 'hide' : 'show'} {numberOfAddresses} Ethereum Addresses
-                            <span className={`transform transition-transform ${showAddresses ? 'rotate-180' : ''}`}>
-                                ▼
-                            </span>
-                        </h2>
-
-                    </div>
-                    {showAddresses && (
-                        <ul className="list-none m-0 p-0">
-                            {ethereumAddresses.map((address, index) => (
-                                <li key={index} className="justify-address">
-                                    <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
-                                        {address}
-                                    </a>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
+            <div className="w-full max-w-4xl p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md">
+                <div {...getRootProps()} className="flex flex-col items-center justify-center w-full p-4 mb-4 border-4 border-dashed border-gray-300 dark:border-gray-600 rounded-md hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-all">
+                    <input {...getInputProps()} />
+                    <p className="text-lg font-medium text-gray-700 dark:text-gray-200">Drag & drop some files here, or click to select files</p>
+                    <em className="text-sm text-gray-500 dark:text-gray-400">(Only *.csv and *.json files will be accepted)</em>
                 </div>
-            )}
-            {isPrepareError ? <div>Error: {prepareError?.message}</div> : null}
-            {isApprovePrepareError ? <div>Error: {approvePrepareError?.message}</div> : null}
-            {isError ? <div>Error: {error?.message}</div> : null}
-            {isSuccess ? <div>Success! Tx hash: {data?.hash}</div> : null}
+
+                <div className="flex flex-col mb-4 space-y-4">
+                    <label className="text-lg font-medium text-gray-700 dark:text-gray-400">
+                        Token Address:
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Token Address"
+                        value={tokenAddress}
+                        onChange={(e) => setTokenAddress(e.target.value as Address)}
+                        className="p-2 rounded-md border border-gray-300"
+                    />
+                    <label className="text-lg font-medium text-gray-700 dark:text-gray-400">
+                        Token ID:
+                    </label>
+                    <input
+                        type="text"
+                        placeholder="Token ID"
+                        value={String(tokenId)}
+                        onChange={(e) => setTokenId(BigInt(e.target.value))}
+                        className="p-2 rounded-md border border-gray-300"
+                    />
+                    {isConnected ? isApprovedForAll ? <button
+                        onClick={() => write?.()}
+                        disabled={!config || isLoading || isError}
+                        className="bg-blue-500 text-white p-2 rounded-md"
+                    >
+                        {isLoading ? 'Submitting...' : 'Submit'}
+                    </button> : <button
+                        onClick={() => approveWrite?.()}
+                        disabled={!approveConfig || isApproveLoading || isApproveError || isApprovedForAll}
+                        className="bg-blue-500 text-white p-2 rounded-md"
+                    >
+                        {isLoading ? 'Submitting approval...' : 'Approve'}
+                    </button> : null }
+                </div>
+                { parsingAddresses ?
+                    <>
+                        <div>{`uploaded ${numberOfAddresses} addresses`}</div>
+                        <div>Parsing addresses and removing non-ERC1155 receivers...</div>
+                    </>
+                     : null }
+
+                {!parsingAddresses && numberOfAddresses > 0 && (
+                    <div>
+                        <div className="mb-4 border border-gray-300 rounded-md p-4">
+                            <h2 className="flex justify-between cursor-pointer" onClick={() => setShowAddresses(!showAddresses)}>
+                                {showAddresses ? 'hide' : 'show'} {numberOfAddresses} Ethereum Addresses
+                                <span className={`transform transition-transform ${showAddresses ? 'rotate-180' : ''}`}>
+                                    ▼
+                                </span>
+                            </h2>
+
+                        </div>
+                        {showAddresses && (
+                            <ul className="list-none m-0 p-0">
+                                {ethereumAddresses.map((address, index) => (
+                                    <li key={index} className="justify-address">
+                                        <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
+                                            {address}
+                                        </a>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                )}
+                {isPrepareError ? <div>Error: {prepareError?.message}</div> : null}
+                {isApprovePrepareError ? <div>Error: {approvePrepareError?.message}</div> : null}
+                {isError ? <div>Error: {error?.message}</div> : null}
+                {isSuccess ? <div>Success! Tx hash: {data?.hash}</div> : null}
+            </div>
 
             <style jsx>{`
               .justify-address {
