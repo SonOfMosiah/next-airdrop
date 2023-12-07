@@ -7,13 +7,17 @@ import { removeContractAddresses } from '@/utils/removeContractAddresses';
 import {Address, parseAbi} from "viem";
 import {Connect} from "@/components/Connect";
 
-export default function Home() {
+export default function Airdrop() {
+    const { address, isConnected } = useAccount();
+    const publicClient = usePublicClient();
+
     const [ethereumAddresses, setEthereumAddresses] = useState<Address[]>([]);
     const [tokenAddress, setTokenAddress] = useState<Address>();
     const [tokenId, setTokenId] = useState<bigint>(0n);
     const [parsingAddresses, setParsingAddresses] = useState(false);
-    const publicClient = usePublicClient();
-    const { address, isConnected } = useAccount();
+    const [numberOfAddresses, setNumberOfAddresses] = useState(0);
+    const [showAddresses, setShowAddresses] = useState(false);
+
 
     const airdropContractAddress = '0x3aD35F512781eD69A18fBF6E383D7F4D2aE0D33d';
 
@@ -103,9 +107,11 @@ export default function Home() {
 
         // Wait for all files to be processed
         await new Promise(resolve => setTimeout(resolve, 1000));
+        setNumberOfAddresses(allAddresses.length);
         setParsingAddresses(true);
         const { filteredAddresses } = await removeContractAddresses({addresses: allAddresses, publicClient});
         setParsingAddresses(false);
+        setNumberOfAddresses(filteredAddresses.length);
         setEthereumAddresses(filteredAddresses);
     }, []);
 
@@ -159,19 +165,59 @@ export default function Home() {
                     {isLoading ? 'Submitting approval...' : 'Approve'}
                 </button> : null }
             </div>
-            <div>
-                <h2>Ethereum Addresses:</h2>
-                {parsingAddresses ? <div>Parsing addresses...</div> : null}
-                <ul>
-                    {ethereumAddresses.map((address, index) => (
-                        <li key={index}>{address}</li>
-                    ))}
-                </ul>
-            </div>
+            { parsingAddresses ?
+                <>
+                    <div>{`uploaded ${numberOfAddresses} addresses`}</div>
+                    <div>Parsing addresses and removing non-ERC1155 receivers...</div>
+                </>
+                 : null }
+
+            {!parsingAddresses && numberOfAddresses > 0 && (
+                <div>
+                    <div className="mb-4 border border-gray-300 rounded-md p-4">
+                        <h2 className="flex justify-between cursor-pointer" onClick={() => setShowAddresses(!showAddresses)}>
+                            {showAddresses ? 'hide' : 'show'} {numberOfAddresses} Ethereum Addresses
+                            <span className={`transform transition-transform ${showAddresses ? 'rotate-180' : ''}`}>
+                                ▼
+                            </span>
+                        </h2>
+
+                    </div>
+                    {showAddresses && (
+                        <ul className="list-none m-0 p-0">
+                            {ethereumAddresses.map((address, index) => (
+                                <li key={index} className="justify-address">
+                                    <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
+                                        {address}
+                                    </a>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
+            )}
             {isPrepareError ? <div>Error: {prepareError?.message}</div> : null}
             {isApprovePrepareError ? <div>Error: {approvePrepareError?.message}</div> : null}
             {isError ? <div>Error: {error?.message}</div> : null}
             {isSuccess ? <div>Success! Tx hash: {data?.hash}</div> : null}
+
+            <style jsx>{`
+              .justify-address {
+                font-family: 'Courier New', Courier, monospace;
+                text-align: justify;
+                text-justify: inter-word;
+                width: 340px; /* Adjust width based on the length of Ethereum addresses */
+              }
+              .justify-address::after {
+                content: '';
+                display: inline-block;
+                width: 100%;
+              }
+              .justify-address a {
+                color: blue; /* or any other color you prefer */
+                text-decoration: none; /* optional, for styling */
+              }
+            `}</style>
         </main>
     );
 }

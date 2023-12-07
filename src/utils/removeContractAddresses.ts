@@ -1,4 +1,6 @@
 import type { Address, PublicClient } from 'viem';
+
+// todo: fix setParsed type
 export const removeContractAddresses = async ({addresses, publicClient}: {addresses: Address[], publicClient: PublicClient}) => {
     let filteredAddresses = [...addresses];
 
