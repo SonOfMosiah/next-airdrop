@@ -218,6 +218,11 @@ export default function Airdrop() {
                 color: blue; /* or any other color you prefer */
                 text-decoration: none; /* optional, for styling */
               }
+              @media (prefers-color-scheme: dark) {
+                .justify-address a {
+                  color: white; /* Change color to white in dark mode */
+                }
+              }
             `}</style>
         </main>
     );
