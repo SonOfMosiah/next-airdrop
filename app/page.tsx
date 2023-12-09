@@ -17,6 +17,7 @@ import {Connect} from "@/components/Connect";
 import { Button } from "@/components/ui/button";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Minus, Plus} from "lucide-react";
+import {H} from '@highlight-run/next/client'
 
 export default function Airdrop() {
   const { address, isConnected } = useAccount();
@@ -34,6 +35,11 @@ export default function Airdrop() {
   const [estimatedGasCost, setEstimatedGasCost] = useState(0n);
 
   const { data: feeData } = useFeeData()
+
+  useEffect(() => {
+    if (!isConnected || !address) return;
+    H.identify(address)
+  }, [address, isConnected])
 
   useEffect(() => {
     if (!tokenAddress || !tokenId || !ethereumAddresses || !publicClient || !isConnected || !feeData?.gasPrice) return;
