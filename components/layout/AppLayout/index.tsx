@@ -3,6 +3,7 @@ import { Connect } from '@/components/Connect';
 import { ReactNode } from 'react';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
+import {ModeToggle} from "@/components/layout/ModeToggle";
 
 type AppLayoutProps = {
     children: ReactNode;
@@ -16,7 +17,7 @@ export function AppLayout({ children }: AppLayoutProps) {
             <header className="sticky top-0 z-40 w-full border-b bg-white dark:bg-gray-700">
                 <div className="container mx-auto flex h-16 items-center justify-between px-6">
                     <div className="container flex items-center justify-between">
-                        <div className="flex-1">
+                        <div className="flex items-center space-x-4">
                             <Image
                                 src={resolvedTheme === 'dark' ? '/airdrop-white.svg' : '/airdrop.svg'}
                                 // src="/airdrop.svg"
@@ -25,9 +26,11 @@ export function AppLayout({ children }: AppLayoutProps) {
                                 height={50}
                                 className="dark:color-white"
                             />
+                            <h1> NFT Airdrop Utility</h1>
                         </div>
-                        <div className="flex space-x-4">
+                        <div className="flex items-center space-x-4">
                             <Connect />
+                            <ModeToggle/>
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 import { configureChains, createConfig, WagmiConfig, Connector } from 'wagmi'
-import {mainnet, polygon, arbitrum } from 'wagmi/chains'
+import {mainnet, polygon, arbitrum, goerli } from 'wagmi/chains'
 import { CoinbaseWalletConnector } from 'wagmi/connectors/coinbaseWallet'
 import { InjectedConnector } from 'wagmi/connectors/injected'
 import { MetaMaskConnector } from 'wagmi/connectors/metaMask'
@@ -10,7 +10,7 @@ import { publicProvider } from 'wagmi/providers/public'
 
 const WagmiProvider = ({ children }: { children: ReactNode }) => {
     const { chains, publicClient, webSocketPublicClient } = configureChains(
-        [polygon],
+        [polygon, goerli],
         [publicProvider()]
     )
 

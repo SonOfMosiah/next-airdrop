@@ -4,7 +4,7 @@ import '@/styles/globals.css';
 import { RootProvider } from "@/providers/RootProvider";
 import { ThemeProvider } from "@/providers/ThemeProvider";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import { AppLayout } from '@/components/common/AppLayout'; // Import AppLayout
+import { AppLayout } from '@/components/layout/AppLayout'; // Import AppLayout
 
 const inter = Inter({ subsets: ['latin'] });
 

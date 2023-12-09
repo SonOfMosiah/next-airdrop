@@ -1,12 +1,22 @@
 'use client'
-import React, { useCallback, useState } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa, { ParseResult } from 'papaparse';
-import {useAccount, useContractRead, useContractWrite, usePrepareContractWrite, usePublicClient} from 'wagmi'
+import {
+  useAccount,
+  useContractRead,
+  useContractWrite,
+  useFeeData,
+  usePrepareContractWrite,
+  usePublicClient
+} from 'wagmi'
 import { removeContractAddresses } from '@/utils/removeContractAddresses';
-import {Address, parseAbi} from "viem";
+import { extractEthereumAddresses } from '@/utils/extractEthereumAddresses';
+import {Address, formatEther, formatGwei, parseAbi} from "viem";
 import {Connect} from "@/components/Connect";
 import { Button } from "@/components/ui/button";
+import {ScrollArea} from "@/components/ui/scroll-area";
+import {Minus, Plus} from "lucide-react";
 
 export default function Airdrop() {
   const { address, isConnected } = useAccount();
@@ -18,6 +28,40 @@ export default function Airdrop() {
   const [parsingAddresses, setParsingAddresses] = useState(false);
   const [numberOfAddresses, setNumberOfAddresses] = useState(0);
   const [showAddresses, setShowAddresses] = useState(false);
+  const [sortAlphabetically, setSortAlphabetically] = useState(false);
+
+  const [estimatedGas, setEstimatedGas] = useState(0n);
+  const [estimatedGasCost, setEstimatedGasCost] = useState(0n);
+
+  const { data: feeData } = useFeeData()
+
+  useEffect(() => {
+    if (!tokenAddress || !tokenId || !ethereumAddresses || !publicClient || !isConnected || !feeData?.gasPrice) return;
+    if (ethereumAddresses.length > 0) {
+      const estimateGas = async () => {
+        console.log('enter estimateGas')
+        try {
+          const gas = await publicClient.estimateContractGas({
+            address: airdropContractAddress!,
+            abi: parseAbi([
+              'function airdropSingle(address tokenAddress, address[] calldata _recipients, uint256 tokenId) external',
+            ]),
+            functionName: 'airdropSingle',
+            args: [tokenAddress!, ethereumAddresses, tokenId!],
+            account: address!
+          });
+          console.log('gas', gas);
+
+          setEstimatedGas(gas);
+          const gasCost = gas * feeData.gasPrice!;
+          setEstimatedGasCost(gasCost);
+        } catch (error) {
+            console.error('Error estimating gas:', error);
+        }
+      }
+      estimateGas();
+    }
+  }, [ethereumAddresses, tokenAddress, tokenId, publicClient])
 
 
   const airdropContractAddress = '0x3aD35F512781eD69A18fBF6E383D7F4D2aE0D33d';
@@ -54,23 +98,18 @@ export default function Airdrop() {
     enabled: ethereumAddresses.length > 0 && isConnected && !!tokenAddress && !!tokenId,
   })
 
+  const {data: balance, isError: isBalanceError} = useContractRead({
+    address: tokenAddress!,
+    abi: parseAbi([
+      'function balanceOf(address account, uint256 id) external view returns (uint256)',
+    ]),
+    functionName: 'balanceOf',
+    args: [address!, tokenId!],
+    enabled: !!tokenAddress && !!tokenId && isConnected,
+    watch: true
+  })
+
   const { data, isLoading, isSuccess, write, error, isError } = useContractWrite(config)
-
-  const extractEthereumAddresses = (data: any) => {
-    const ethAddressRegex = /0x[a-fA-F0-9]{40}/;
-    const addresses: Address[] = [];
-
-    for (const row of data) {
-      for (const key in row) {
-        const potentialAddress = row[key];
-        if (typeof potentialAddress === 'string' && ethAddressRegex.test(potentialAddress)) {
-          addresses.push(potentialAddress as Address);
-        }
-      }
-    }
-
-    return addresses;
-  };
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     let allAddresses: Address[] = [];
@@ -114,6 +153,7 @@ export default function Airdrop() {
     setParsingAddresses(false);
     setNumberOfAddresses(filteredAddresses.length);
     setEthereumAddresses(filteredAddresses);
+    const sortedEthereumAddresses = filteredAddresses.toSorted();
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: {
@@ -142,34 +182,48 @@ export default function Airdrop() {
                 onChange={(e) => setTokenAddress(e.target.value as Address)}
                 className="p-2 rounded-md border border-gray-300"
             />
-            <label className="text-lg font-medium text-gray-700 dark:text-gray-400">
-              Token ID:
-            </label>
-            <input
-                type="text"
-                placeholder="Token ID"
-                value={String(tokenId)}
-                onChange={(e) => setTokenId(BigInt(e.target.value))}
-                className="p-2 rounded-md border border-gray-300"
-            />
+            {
+                isConnected && isApprovedForAll && (
+                    <>
+                      <label className="text-lg font-medium text-gray-700 dark:text-gray-400">
+                        Token ID:
+                      </label>
+                      <input
+                          type="text"
+                          placeholder="Token ID"
+                          value={String(tokenId)}
+                          onChange={(e) => setTokenId(BigInt(e.target.value))}
+                          className="p-2 rounded-md border border-gray-300"
+                      />
+                    </>
+                )
+            }
+            <div className="flex space-x-4">
+              { isConnected && !isBalanceError && tokenAddress && tokenId ? <div>Your Balance: {String(balance)} tokens</div> : null}
+              {estimatedGasCost ? <div>Estimated gas cost: {formatEther(estimatedGasCost)} MATIC</div> : null}
+            </div>
             {isConnected ? isApprovedForAll ? <Button
                 onClick={() => write?.()}
-                disabled={!config || isLoading || isError}
+                disabled={!config || isLoading || !ethereumAddresses.length || !tokenAddress || !tokenId}
                 className="bg-blue-500 text-white p-2 rounded-md"
             >
-              {isLoading ? 'Submitting...' : 'Submit'}
+              {isLoading ? <div className="spinner"/> : 'Submit'}
             </Button> : <Button
                 onClick={() => approveWrite?.()}
-                disabled={!approveConfig || isApproveLoading || isApproveError || isApprovedForAll}
+                disabled={!approveConfig || isApproveLoading}
                 className="bg-blue-500 text-white p-2 rounded-md"
             >
-              {isLoading ? 'Submitting approval...' : 'Approve'}
+              {isApproveLoading ? <div className="spinner"/> : 'Approve'}
             </Button> : null }
           </div>
           { parsingAddresses ?
               <>
                 <div>{`uploaded ${numberOfAddresses} addresses`}</div>
-                <div>Parsing addresses and removing non-ERC1155 receivers...</div>
+                <div className={'flex space-x-4 items-center'}>
+                  <div className="spinner"/>
+                  <div >Parsing addresses and removing non-ERC1155 receivers...</div>
+                </div>
+
               </>
               : null }
 
@@ -178,22 +232,40 @@ export default function Airdrop() {
                 <div className="mb-4 border border-gray-300 rounded-md p-4">
                   <h2 className="flex justify-between cursor-pointer" onClick={() => setShowAddresses(!showAddresses)}>
                     {showAddresses ? 'hide' : 'show'} {numberOfAddresses} Ethereum Addresses
-                    <span className={`transform transition-transform ${showAddresses ? 'rotate-180' : ''}`}>
-                                    ▼
-                                </span>
+                    {showAddresses ? <Minus /> : <Plus />}
                   </h2>
 
                 </div>
                 {showAddresses && (
-                    <ul className="list-none m-0 p-0">
-                      {ethereumAddresses.map((address, index) => (
-                          <li key={index} className="justify-address">
-                            <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
-                              {address}
-                            </a>
-                          </li>
-                      ))}
-                    </ul>
+                    <>
+                      <div className="flex items-center mb-2">
+                        <input
+                            type="checkbox"
+                            id="sortAlphabetically"
+                            checked={sortAlphabetically}
+                            onChange={(e) => setSortAlphabetically(e.target.checked)}
+                            className="mr-2"
+                        />
+                        <label htmlFor="sortAlphabetically">Sort alphabetically</label>
+                      </div>
+                      <ScrollArea className="h-[300px] rounded-md border p-4">
+                        <ul className="list-none m-0 p-0">
+                          {sortAlphabetically ? ethereumAddresses.toSorted().map((address, index) => (
+                              <li key={index} className="justify-address">
+                                <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
+                                  {address}
+                                </a>
+                              </li>
+                          )) : ethereumAddresses.map((address, index) => (
+                              <li key={index} className="justify-address">
+                                <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
+                                  {address}
+                                </a>
+                              </li>
+                          ))}
+                        </ul>
+                      </ScrollArea>
+                    </>
                 )}
               </div>
           )}
@@ -202,29 +274,6 @@ export default function Airdrop() {
           {isError ? <div>Error: {error?.message}</div> : null}
           {isSuccess ? <div>Success! Tx hash: {data?.hash}</div> : null}
         </div>
-
-        <style jsx>{`
-              .justify-address {
-                font-family: 'Courier New', Courier, monospace;
-                text-align: justify;
-                text-justify: inter-word;
-                width: 340px; /* Adjust width based on the length of Ethereum addresses */
-              }
-              .justify-address::after {
-                content: '';
-                display: inline-block;
-                width: 100%;
-              }
-              .justify-address a {
-                color: blue; /* or any other color you prefer */
-                text-decoration: none; /* optional, for styling */
-              }
-              @media (prefers-color-scheme: dark) {
-                .justify-address a {
-                  color: white; /* Change color to white in dark mode */
-                }
-              }
-            `}</style>
       </main>
   );
 }
