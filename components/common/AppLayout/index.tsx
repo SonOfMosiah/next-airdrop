@@ -8,7 +8,7 @@ type AppLayoutProps = {
     children: ReactNode;
 };
 
-export default function AppLayout({ children }: AppLayoutProps) {
+export function AppLayout({ children }: AppLayoutProps) {
     const {  resolvedTheme } = useTheme();
 
     return (
@@ -24,7 +24,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
                                 width={50}
                                 height={50}
                                 className="dark:color-white"
-                                />
+                            />
                         </div>
                         <div className="flex space-x-4">
                             <Connect />
