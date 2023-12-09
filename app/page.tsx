@@ -257,13 +257,13 @@ export default function Airdrop() {
                       <ScrollArea className="h-[300px] rounded-md border p-4">
                         <ul className="list-none m-0 p-0">
                           {sortAlphabetically ? ethereumAddresses.toSorted().map((address, index) => (
-                              <li key={index} className="justify-address">
+                              <li key={index} className="justify-address text-black dark:text-white ">
                                 <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
                                   {address}
                                 </a>
                               </li>
                           )) : ethereumAddresses.map((address, index) => (
-                              <li key={index} className="justify-address">
+                              <li key={index} className="justify-address text-black dark:text-white ">
                                 <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
                                   {address}
                                 </a>
