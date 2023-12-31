@@ -1,19 +1,19 @@
 'use client'
 import React, {useCallback, useEffect, useState} from 'react';
 import { useDropzone } from 'react-dropzone';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import Papa, { ParseResult } from 'papaparse';
 import {
   useAccount,
-  useContractRead,
-  useContractWrite,
+  useReadContract,
+  useWriteContract,
   useFeeData,
-  usePrepareContractWrite,
   usePublicClient
 } from 'wagmi'
 import { removeContractAddresses } from '@/utils/removeContractAddresses';
 import { extractEthereumAddresses } from '@/utils/extractEthereumAddresses';
-import {Address, formatEther, formatGwei, parseAbi} from "viem";
-import {Connect} from "@/components/Connect";
+import {Address, formatEther, parseAbi} from "viem";
 import { Button } from "@/components/ui/button";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Minus, Plus} from "lucide-react";
@@ -30,11 +30,16 @@ export default function Airdrop() {
   const [numberOfAddresses, setNumberOfAddresses] = useState(0);
   const [showAddresses, setShowAddresses] = useState(false);
   const [sortAlphabetically, setSortAlphabetically] = useState(false);
+  const [numberOfTransactions, setNumberOfTransactions] = useState(1)
 
   const [estimatedGas, setEstimatedGas] = useState(0n);
   const [estimatedGasCost, setEstimatedGasCost] = useState(0n);
 
+  const addresses_per_tx = 500
+
   const { data: feeData } = useFeeData()
+
+  const { writeContractAsync, data, error, isError, isSuccess, isPending } = useWriteContract()
 
   useEffect(() => {
     if (!isConnected || !address) return;
@@ -42,10 +47,12 @@ export default function Airdrop() {
   }, [address, isConnected])
 
   useEffect(() => {
+    if (ethereumAddresses && ethereumAddresses.length > 0) {
+      setNumberOfTransactions(Math.ceil(ethereumAddresses.length / addresses_per_tx))
+    }
     if (!tokenAddress || !tokenId || !ethereumAddresses || !publicClient || !isConnected || !feeData?.gasPrice) return;
     if (ethereumAddresses.length > 0) {
       const estimateGas = async () => {
-        console.log('enter estimateGas')
         try {
           const gas = await publicClient.estimateContractGas({
             address: airdropContractAddress!,
@@ -56,8 +63,6 @@ export default function Airdrop() {
             args: [tokenAddress!, ethereumAddresses, tokenId!],
             account: address!
           });
-          console.log('gas', gas);
-
           setEstimatedGas(gas);
           const gasCost = gas * feeData.gasPrice!;
           setEstimatedGasCost(gasCost);
@@ -72,50 +77,63 @@ export default function Airdrop() {
 
   const airdropContractAddress = '0x3aD35F512781eD69A18fBF6E383D7F4D2aE0D33d';
 
-  const { data: isApprovedForAll, isLoading: isApprovedForAllLoading, isSuccess: isApprovedForAllSuccess } = useContractRead({
+  const { data: isApprovedForAll } = useReadContract({
     address: tokenAddress!,
     abi: parseAbi([
       'function isApprovedForAll(address owner, address operator) external view returns (bool)',
     ]),
     functionName: 'isApprovedForAll',
     args: [address!, airdropContractAddress],
-    enabled: !!tokenAddress && !!address,
-    watch: true
+    query: {
+      enabled: !!tokenAddress && !!address,
+    }
   })
 
-  const { config: approveConfig, isError: isApprovePrepareError, error: approvePrepareError } = usePrepareContractWrite({
-    address: tokenAddress!,
-    abi: parseAbi([
-      'function setApprovalForAll(address spender, bool isApprovedForAll) external',
-    ]),
-    functionName: 'setApprovalForAll',
-    args: [airdropContractAddress, true]
-  })
-
-  const { data: approveData, isLoading: isApproveLoading, isSuccess: isApproveSuccess, write: approveWrite, error: approveError, isError: isApproveError } = useContractWrite(approveConfig)
-
-  const { config, isError: isPrepareError, error: prepareError } = usePrepareContractWrite({
-    address: airdropContractAddress,
-    abi: parseAbi([
-      'function airdropSingle(address tokenAddress, address[] calldata _recipients, uint256 tokenId) external',
-    ]),
-    functionName: 'airdropSingle',
-    args: [tokenAddress!, ethereumAddresses, tokenId!],
-    enabled: ethereumAddresses.length > 0 && isConnected && !!tokenAddress && !!tokenId,
-  })
-
-  const {data: balance, isError: isBalanceError} = useContractRead({
+  const {data: balance, isError: isBalanceError} = useReadContract({
     address: tokenAddress!,
     abi: parseAbi([
       'function balanceOf(address account, uint256 id) external view returns (uint256)',
     ]),
     functionName: 'balanceOf',
     args: [address!, tokenId!],
-    enabled: !!tokenAddress && !!tokenId && isConnected,
-    watch: true
+    query: {
+      enabled: !!tokenAddress && !!tokenId && isConnected,
+    }
   })
 
-  const { data, isLoading, isSuccess, write, error, isError } = useContractWrite(config)
+  const handleAirdrop = async() => {
+    let i = 0
+    while (i < ethereumAddresses.length) {
+      const k = i + addresses_per_tx <= ethereumAddresses.length ? i + addresses_per_tx : ethereumAddresses.length - i
+      await writeContractAsync({
+        address: airdropContractAddress,
+        abi: parseAbi([
+          'function airdropSingle(address tokenAddress, address[] calldata _recipients, uint256 tokenId) external',
+        ]),
+        functionName: 'airdropSingle',
+        args: [tokenAddress!, ethereumAddresses.slice(i, k), tokenId!],
+      }, {
+        onSuccess: () => {
+          i += k
+          toast.success('Successfully airdropped ')
+        },
+        onError: () => {
+          toast.error('Error Minting Beta NFT')
+        }
+      })
+    }
+  }
+
+  const handleApproval = async() => {
+    await writeContractAsync({
+      address: tokenAddress!,
+      abi: parseAbi([
+        'function setApprovalForAll(address spender, bool isApprovedForAll) external',
+      ]),
+      functionName: 'setApprovalForAll',
+      args: [airdropContractAddress, true]
+    })
+  }
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     let allAddresses: Address[] = [];
@@ -159,7 +177,6 @@ export default function Airdrop() {
     setParsingAddresses(false);
     setNumberOfAddresses(filteredAddresses.length);
     setEthereumAddresses(filteredAddresses);
-    const sortedEthereumAddresses = filteredAddresses.toSorted();
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: {
@@ -169,7 +186,7 @@ export default function Airdrop() {
 
   return (
       <main className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100 dark:bg-gray-800">
-        {!isConnected ? <Connect /> : null}
+        <ToastContainer />
         <div className="w-full max-w-4xl p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md">
           <div {...getRootProps()} className="flex flex-col items-center justify-center w-full p-4 mb-4 border-4 border-dashed border-gray-300 dark:border-gray-600 rounded-md hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-all">
             <input {...getInputProps()} />
@@ -205,29 +222,33 @@ export default function Airdrop() {
                 )
             }
             <div className="flex space-x-4">
-              { isConnected && !isBalanceError && tokenAddress && tokenId ? <div>Your Balance: {String(balance)} tokens</div> : null}
+              {isConnected && !isBalanceError && tokenAddress && tokenId ?
+                  <div>Your Balance: {String(balance)} tokens</div> : null}
               {estimatedGasCost ? <div>Estimated gas cost: {formatEther(estimatedGasCost)} MATIC</div> : null}
             </div>
+            <div className="flex space-x-4">
+              {numberOfTransactions > 1 ? `Airdrop will be split into ${numberOfTransactions} transactions` : null}
+            </div>
             {isConnected ? isApprovedForAll ? <Button
-                onClick={() => write?.()}
-                disabled={!config || isLoading || !ethereumAddresses.length || !tokenAddress || !tokenId}
+                onClick={handleAirdrop}
+                disabled={isPending || !ethereumAddresses.length || !tokenAddress || !tokenId}
                 className="bg-blue-500 text-white p-2 rounded-md"
             >
-              {isLoading ? <div className="spinner"/> : 'Submit'}
+              {isPending ? <div className="spinner"/> : 'Submit'}
             </Button> : <Button
-                onClick={() => approveWrite?.()}
-                disabled={!approveConfig || isApproveLoading}
+                onClick={handleApproval}
+                disabled={isPending}
                 className="bg-blue-500 text-white p-2 rounded-md"
             >
-              {isApproveLoading ? <div className="spinner"/> : 'Approve'}
-            </Button> : null }
+              {isPending ? <div className="spinner"/> : 'Approve'}
+            </Button> : null}
           </div>
-          { parsingAddresses ?
+          {parsingAddresses ?
               <>
                 <div>{`uploaded ${numberOfAddresses} addresses`}</div>
                 <div className={'flex space-x-4 items-center'}>
                   <div className="spinner"/>
-                  <div >Parsing addresses and removing non-ERC1155 receivers...</div>
+                  <div>Parsing addresses and removing non-ERC1155 receivers...</div>
                 </div>
 
               </>
@@ -275,10 +296,8 @@ export default function Airdrop() {
                 )}
               </div>
           )}
-          {isPrepareError ? <div>Error: {prepareError?.message}</div> : null}
-          {isApprovePrepareError ? <div>Error: {approvePrepareError?.message}</div> : null}
           {isError ? <div>Error: {error?.message}</div> : null}
-          {isSuccess ? <div>Success! Tx hash: {data?.hash}</div> : null}
+          {isSuccess ? <div>Success! Tx hash: {data}</div> : null}
         </div>
       </main>
   );
