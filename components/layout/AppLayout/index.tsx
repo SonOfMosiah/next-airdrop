@@ -1,13 +1,21 @@
 'use client'
-import { Connect } from '@/components/Connect';
 import { ReactNode } from 'react';
 import Image from 'next/image';
 import { useTheme } from 'next-themes';
 import {ModeToggle} from "@/components/layout/ModeToggle";
+import {useAccount} from "wagmi";
+import {Account} from "@/components/Account";
+import {WalletOptionsModal} from "@/components/WalletOptionsModal";
 
 type AppLayoutProps = {
     children: ReactNode;
 };
+
+function ConnectWallet() {
+    const { isConnected } = useAccount()
+    if (isConnected) return <Account />
+    return <WalletOptionsModal />
+}
 
 export function AppLayout({ children }: AppLayoutProps) {
     const {  resolvedTheme } = useTheme();
@@ -29,7 +37,7 @@ export function AppLayout({ children }: AppLayoutProps) {
                             <h1> NFT Airdrop Utility</h1>
                         </div>
                         <div className="flex items-center space-x-4">
-                            <Connect />
+                            <ConnectWallet />
                             <ModeToggle/>
                         </div>
                     </div>
