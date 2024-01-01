@@ -73,7 +73,7 @@ export default function Airdrop() {
       } catch (error) {
         console.error(error);
       }
-      setParseProgress(Math.round((i / total) * 100));
+      setParseProgress((i / total) * 100);
     }
 
     return { filteredAddresses };
