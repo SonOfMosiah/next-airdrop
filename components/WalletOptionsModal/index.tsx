@@ -13,8 +13,6 @@ import {
 export function WalletOptionsModal() {
     const { connectors, connect } = useConnect();
 
-    console.log('connectors:', connectors)
-
     return (
         <>
             <Dialog>

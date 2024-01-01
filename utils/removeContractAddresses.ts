@@ -10,7 +10,6 @@ export const removeContractAddresses = async ({addresses, publicClient}: {addres
                 address: filteredAddresses[i]
             });
             if (bytecode && bytecode !== '0x') {
-                console.log('Address is a contract:', filteredAddresses[i]);
                 filteredAddresses.splice(i, 1);
                 --i;
             }

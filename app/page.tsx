@@ -8,12 +8,11 @@ import {
   useAccount,
   useReadContract,
   useWriteContract,
-  useFeeData,
-  usePublicClient
+  usePublicClient,
+  useGasPrice
 } from 'wagmi'
-import { removeContractAddresses } from '@/utils/removeContractAddresses';
 import { extractEthereumAddresses } from '@/utils/extractEthereumAddresses';
-import {Address, formatEther, parseAbi} from "viem";
+import {Address, formatEther, parseAbi, PublicClient} from "viem";
 import { Button } from "@/components/ui/button";
 import {ScrollArea} from "@/components/ui/scroll-area";
 import {Minus, Plus} from "lucide-react";
@@ -27,6 +26,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 
 
 export default function Airdrop() {
@@ -34,6 +37,7 @@ export default function Airdrop() {
   const publicClient = usePublicClient();
 
   const [uploadedFiles, setUploadedFiles] = useState<{ file: File; count: number }[]>([]);
+  const [parseProgress, setParseProgress] = useState(0);
 
   const [ethereumAddresses, setEthereumAddresses] = useState<Address[]>([]);
   const [tokenAddress, setTokenAddress] = useState<Address>();
@@ -49,9 +53,31 @@ export default function Airdrop() {
 
   const addresses_per_tx = 500
 
-  const { data: feeData } = useFeeData()
+  const { data: gasPrice } = useGasPrice()
 
   const { writeContractAsync, data, error, isError, isSuccess, isPending } = useWriteContract()
+
+  const removeContractAddresses = async ({addresses, publicClient}: {addresses: Address[], publicClient: PublicClient}) => {
+    let filteredAddresses = [...addresses];
+    const total = filteredAddresses.length;
+
+    for (let i = 0; i < filteredAddresses.length; i++) {
+      try {
+        const bytecode = await publicClient.getBytecode({
+          address: filteredAddresses[i]
+        });
+        if (bytecode && bytecode !== '0x') {
+          filteredAddresses.splice(i, 1);
+          --i;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+      setParseProgress(Math.round((i / total) * 100));
+    }
+
+    return { filteredAddresses };
+  };
 
   useEffect(() => {
     if (!isConnected || !address) return;
@@ -62,7 +88,7 @@ export default function Airdrop() {
     if (ethereumAddresses && ethereumAddresses.length > 0) {
       setNumberOfTransactions(Math.ceil(ethereumAddresses.length / addresses_per_tx))
     }
-    if (!tokenAddress || !tokenId || !ethereumAddresses || !publicClient || !isConnected || !feeData?.gasPrice) return;
+    if (!tokenAddress || !tokenId || !ethereumAddresses || !publicClient || !isConnected || !gasPrice) return;
     if (ethereumAddresses.length > 0) {
       const estimateGas = async () => {
         try {
@@ -76,7 +102,7 @@ export default function Airdrop() {
             account: address!
           });
           setEstimatedGas(gas);
-          const gasCost = gas * feeData.gasPrice!;
+          const gasCost = gas * gasPrice!;
           setEstimatedGasCost(gasCost);
         } catch (error) {
             console.error('Error estimating gas:', error);
@@ -89,15 +115,15 @@ export default function Airdrop() {
 
   const airdropContractAddress = '0x3aD35F512781eD69A18fBF6E383D7F4D2aE0D33d';
 
-  const { data: isApprovedForAll } = useReadContract({
-    address: tokenAddress!,
+  const { data: isApprovedForAll, dataUpdatedAt, refetch: refetchApproval, isError: isReadApprovalError, error: readApprovalError } = useReadContract({
+    address: tokenAddress,
     abi: parseAbi([
       'function isApprovedForAll(address owner, address operator) external view returns (bool)',
     ]),
     functionName: 'isApprovedForAll',
     args: [address!, airdropContractAddress],
     query: {
-      enabled: !!tokenAddress && !!address,
+      enabled: !!tokenAddress && !!address && !!airdropContractAddress,
     }
   })
 
@@ -138,13 +164,26 @@ export default function Airdrop() {
   }
 
   const handleApproval = async() => {
+    if (!tokenAddress) {
+      toast.error('Please enter a token address')
+      return
+    }
+    if (!airdropContractAddress) return
     await writeContractAsync({
-      address: tokenAddress!,
+      address: tokenAddress,
       abi: parseAbi([
         'function setApprovalForAll(address spender, bool isApprovedForAll) external',
       ]),
       functionName: 'setApprovalForAll',
       args: [airdropContractAddress, true]
+    }, {
+      onSuccess: () => {
+        refetchApproval()
+        toast.success('Successfully set approval')
+      },
+      onError: () => {
+        toast.error('Error setting approval')
+      }
     })
   }
 
@@ -235,16 +274,15 @@ export default function Airdrop() {
             ))}
           </div>
 
-          <div className="flex flex-col mb-4 space-y-4">
-            <label className="text-lg font-medium text-gray-700 dark:text-gray-400">
+          <div className="flex flex-col my-4 space-y-4">
+            <Label>
               Token Address:
-            </label>
-            <input
+            </Label>
+            <Input
                 type="text"
                 placeholder="Token Address"
                 value={tokenAddress}
                 onChange={(e) => setTokenAddress(e.target.value as Address)}
-                className="p-2 rounded-md border border-gray-300"
             />
             {
                 isConnected && isApprovedForAll && (
@@ -264,8 +302,8 @@ export default function Airdrop() {
             }
             <div className="flex space-x-4">
               {isConnected && !isBalanceError && tokenAddress && tokenId ?
-                  <div>Your Balance: {String(balance)} tokens</div> : null}
-              {estimatedGasCost ? <div>Estimated gas cost: {formatEther(estimatedGasCost)} MATIC</div> : null}
+                  <Label>Your Balance: {String(balance)} tokens</Label> : null}
+              {estimatedGasCost ? <Label>Estimated gas cost: {formatEther(estimatedGasCost)} MATIC</Label> : null}
             </div>
             <div className="flex space-x-4">
               {numberOfTransactions > 1 ? `Airdrop will be split into ${numberOfTransactions} transactions` : null}
@@ -291,7 +329,7 @@ export default function Airdrop() {
                   <div className="spinner"/>
                   <div>Parsing addresses and removing non-ERC1155 receivers...</div>
                 </div>
-
+                <Progress value={parseProgress} />
               </>
               : null}
 
@@ -339,7 +377,6 @@ export default function Airdrop() {
                 )}
               </div>
           )}
-          {isError ? <div>Error: {error?.message}</div> : null}
           {isSuccess ? <div>Success! Tx hash: {data}</div> : null}
         </div>
       </main>
