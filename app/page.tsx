@@ -27,6 +27,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -250,6 +251,12 @@ export default function Airdrop() {
       <main className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100 dark:bg-gray-800">
         <ToastContainer />
         <div className="w-full max-w-4xl p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md">
+          <Tabs defaultValue="erc1155" className="w-[400px]">
+            <TabsList>
+              <TabsTrigger value="erc1155">erc1155</TabsTrigger>
+              <TabsTrigger value="erc721" disabled={true}>erc721 (coming soon)</TabsTrigger>
+            </TabsList>
+          </Tabs>
           <div className="uploaded-files grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             <Card {...getRootProps()} className={`card dropzone shadow-md overflow-hidden flex flex-col items-center justify-center border-4 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-all ${uploadedFiles.length === 0 ? 'col-span-full h-32' : ''}`}>
               <CardHeader>
