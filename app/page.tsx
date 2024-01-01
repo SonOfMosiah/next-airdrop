@@ -19,9 +19,21 @@ import {ScrollArea} from "@/components/ui/scroll-area";
 import {Minus, Plus} from "lucide-react";
 import {H} from '@highlight-run/next/client'
 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+
+
 export default function Airdrop() {
   const { address, isConnected } = useAccount();
   const publicClient = usePublicClient();
+
+  const [uploadedFiles, setUploadedFiles] = useState<{ file: File; count: number }[]>([]);
 
   const [ethereumAddresses, setEthereumAddresses] = useState<Address[]>([]);
   const [tokenAddress, setTokenAddress] = useState<Address>();
@@ -115,6 +127,7 @@ export default function Airdrop() {
       }, {
         onSuccess: () => {
           i += k
+          setNumberOfAddresses(numberOfAddresses - k)
           toast.success('Successfully airdropped ')
         },
         onError: () => {
@@ -150,6 +163,11 @@ export default function Airdrop() {
           try {
             const jsonData = JSON.parse(fileContent);
             const addresses = extractEthereumAddresses(jsonData);
+            const count = addresses.length;
+
+            // Update the state with file and count
+            setUploadedFiles(prevFiles => [...prevFiles, { file, count }]);
+
             allAddresses.push(...addresses);
           } catch (error) {
             console.error('Error parsing JSON:', error);
@@ -159,6 +177,10 @@ export default function Airdrop() {
           Papa.parse(fileContent, {
             complete: async (result: ParseResult<any>) => {
               const addresses = extractEthereumAddresses(result.data);
+              const count = addresses.length;
+
+              // Update the state with file and count
+              setUploadedFiles(prevFiles => [...prevFiles, { file, count }]);
               allAddresses.push(...addresses);
             },
             header: true
@@ -171,6 +193,7 @@ export default function Airdrop() {
 
     // Wait for all files to be processed
     await new Promise(resolve => setTimeout(resolve, 1000));
+
     setNumberOfAddresses(allAddresses.length);
     setParsingAddresses(true);
     const { filteredAddresses } = await removeContractAddresses({addresses: allAddresses, publicClient});
@@ -188,10 +211,26 @@ export default function Airdrop() {
       <main className="flex flex-col items-center justify-center min-h-screen p-6 bg-gray-100 dark:bg-gray-800">
         <ToastContainer />
         <div className="w-full max-w-4xl p-6 bg-white dark:bg-gray-700 rounded-lg shadow-md">
-          <div {...getRootProps()} className="flex flex-col items-center justify-center w-full p-4 mb-4 border-4 border-dashed border-gray-300 dark:border-gray-600 rounded-md hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-all">
-            <input {...getInputProps()} />
-            <p className="text-lg font-medium text-gray-700 dark:text-gray-200">Drag & drop some files here, or click to select files</p>
-            <em className="text-sm text-gray-500 dark:text-gray-400">(Only *.csv and *.json files will be accepted)</em>
+          <div className="uploaded-files grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {/* Dropzone as the last card in the grid */}
+            <div {...getRootProps()}
+                 className={`card dropzone bg-white rounded-lg shadow-md overflow-hidden flex flex-col items-center justify-center border-4 border-dashed border-gray-300 dark:border-gray-600 hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900 transition-all ${uploadedFiles.length === 0 ? 'col-span-full h-32' : ''}`}>
+              <input {...getInputProps()} />
+              <p className="text-lg font-medium text-gray-700 dark:text-gray-200">Drag & drop some files here, or click
+                to select files</p>
+              <em className="text-sm text-gray-500 dark:text-gray-400">(Only *.csv and *.json files will be
+                accepted)</em>
+            </div>
+            {uploadedFiles.map(({ file, count }, index) => (
+                <div key={index} className="card bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="card-header p-4 border-b">
+                    <h5 className="card-title font-semibold">{file.name}</h5>
+                  </div>
+                  <div className="card-content p-4">
+                    <p>Addresses: {count}</p>
+                  </div>
+                </div>
+            ))}
           </div>
 
           <div className="flex flex-col mb-4 space-y-4">
@@ -252,14 +291,14 @@ export default function Airdrop() {
                 </div>
 
               </>
-              : null }
+              : null}
 
           {!parsingAddresses && numberOfAddresses > 0 && (
               <div>
                 <div className="mb-4 border border-gray-300 rounded-md p-4">
                   <h2 className="flex justify-between cursor-pointer" onClick={() => setShowAddresses(!showAddresses)}>
                     {showAddresses ? 'hide' : 'show'} {numberOfAddresses} Ethereum Addresses
-                    {showAddresses ? <Minus /> : <Plus />}
+                    {showAddresses ? <Minus/> : <Plus/>}
                   </h2>
 
                 </div>
@@ -279,13 +318,15 @@ export default function Airdrop() {
                         <ul className="list-none m-0 p-0">
                           {sortAlphabetically ? ethereumAddresses.toSorted().map((address, index) => (
                               <li key={index} className="justify-address text-black dark:text-white ">
-                                <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
+                                <a href={`https://polygonscan.com/address/${address}`} target="_blank"
+                                   rel="noopener noreferrer">
                                   {address}
                                 </a>
                               </li>
                           )) : ethereumAddresses.map((address, index) => (
                               <li key={index} className="justify-address text-black dark:text-white ">
-                                <a href={`https://polygonscan.com/address/${address}`} target="_blank" rel="noopener noreferrer">
+                                <a href={`https://polygonscan.com/address/${address}`} target="_blank"
+                                   rel="noopener noreferrer">
                                   {address}
                                 </a>
                               </li>
