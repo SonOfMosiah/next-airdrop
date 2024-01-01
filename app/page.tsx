@@ -223,10 +223,10 @@ export default function Airdrop() {
             </div>
             {uploadedFiles.map(({ file, count }, index) => (
                 <div key={index} className="card bg-white rounded-lg shadow-md overflow-hidden">
-                  <div className="card-header p-4 border-b">
+                  <div className="card-header p-4 border-b dark:text-gray-400">
                     <h5 className="card-title font-semibold">{file.name}</h5>
                   </div>
-                  <div className="card-content p-4">
+                  <div className="card-content p-4 dark:text-gray-400">
                     <p>Addresses: {count}</p>
                   </div>
                 </div>
