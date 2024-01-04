@@ -9,7 +9,7 @@ import {
   useReadContract,
   useWriteContract,
   usePublicClient,
-  useGasPrice
+  useGasPrice, http
 } from 'wagmi'
 import { extractEthereumAddresses } from '@/utils/extractEthereumAddresses';
 import {Address, formatEther, parseAbi, PublicClient} from "viem";
@@ -236,10 +236,36 @@ export default function Airdrop() {
 
     setNumberOfAddresses(allAddresses.length);
     setParsingAddresses(true);
-    const { filteredAddresses } = await removeContractAddresses({addresses: allAddresses, publicClient});
-    setParsingAddresses(false);
-    setNumberOfAddresses(filteredAddresses.length);
-    setEthereumAddresses(filteredAddresses);
+    // const { filteredAddresses } = await removeContractAddresses({addresses: allAddresses, publicClient});
+    try {
+      const filteredAddressesRes = await fetch('https://nft-airdrop-backend.shuttleapp.rs/addresses/remove_contract_addresses', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+              "addresses": [
+                "0x54409dDAdb011eE6e62a5011DeB87CE54f314530"
+              ],
+              "provider_url": "https://polygon-rpc.com"
+            }
+        )
+        // body: JSON.stringify({addresses: allAddresses, provider_url: "https://polygon-rpc.com"})
+      })
+
+      if (!filteredAddressesRes.ok) {
+        toast.error('Error parsing addresses')
+        console.error('Error parsing addresses:', filteredAddressesRes.statusText);
+        return
+      }
+
+      const filteredAddresses = await filteredAddressesRes.json()
+      setParsingAddresses(false);
+      setNumberOfAddresses(filteredAddresses.length);
+      setEthereumAddresses(filteredAddresses);
+    } catch (error) {
+        console.error('Error parsing addresses:', error);
+    }
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: {
