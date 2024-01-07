@@ -21,13 +21,12 @@ import {H} from '@highlight-run/next/client'
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -116,6 +115,11 @@ export default function Airdrop() {
 
   const airdropContractAddress = '0x3aD35F512781eD69A18fBF6E383D7F4D2aE0D33d';
 
+
+  console.log('address', address)
+  console.log('airdropContractAddress', airdropContractAddress)
+  console.log('tokenAddress', tokenAddress)
+
   const { data: isApprovedForAll, dataUpdatedAt, refetch: refetchApproval, isError: isReadApprovalError, error: readApprovalError } = useReadContract({
     address: tokenAddress,
     abi: parseAbi([
@@ -125,8 +129,12 @@ export default function Airdrop() {
     args: [address!, airdropContractAddress],
     query: {
       enabled: !!tokenAddress && !!address && !!airdropContractAddress,
+      staleTime: 0,
+      gcTime: 0, // don't cache the data
     }
   })
+
+  console.log('isApprovedForAll', isApprovedForAll, isReadApprovalError, readApprovalError)
 
   const {data: balance, isError: isBalanceError} = useReadContract({
     address: tokenAddress!,
@@ -239,7 +247,6 @@ export default function Airdrop() {
     const { filteredAddresses } = await removeContractAddresses({addresses: allAddresses, publicClient});
     setParsingAddresses(false);
     setNumberOfAddresses(filteredAddresses.length);
-    setEthereumAddresses(filteredAddresses);
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: {

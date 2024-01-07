@@ -1,20 +1,30 @@
 import { http, fallback, unstable_connector, createConfig } from 'wagmi'
-import { mainnet, polygon, arbitrum } from 'wagmi/chains'
+import { mainnet, polygon, arbitrum, goerli } from 'wagmi/chains'
 import { injected, metaMask, coinbaseWallet, safe } from 'wagmi/connectors'
 
 export const wagmiConfig = createConfig({
-    chains: [arbitrum],
-    connectors: [injected(), metaMask(), safe()],
+    chains: [polygon, mainnet, arbitrum, goerli],
+    connectors: [
+        injected(),
+        metaMask(),
+        coinbaseWallet({
+            appName: 'nft-airdrop-utility'
+        }),
+        safe()],
     transports: {
-        [mainnet.id]: fallback([
-            unstable_connector(safe),
-            http(),
-        ]),
         [polygon.id]: fallback([
             unstable_connector(safe),
             http(),
         ]),
+        [mainnet.id]: fallback([
+            unstable_connector(safe),
+            http(),
+        ]),
         [arbitrum.id]: fallback([
+            unstable_connector(safe),
+            http(),
+        ]),
+        [goerli.id]: fallback([
             unstable_connector(safe),
             http(),
         ]),
