@@ -116,10 +116,6 @@ export default function Airdrop() {
   const airdropContractAddress = '0x3aD35F512781eD69A18fBF6E383D7F4D2aE0D33d';
 
 
-  console.log('address', address)
-  console.log('airdropContractAddress', airdropContractAddress)
-  console.log('tokenAddress', tokenAddress)
-
   const { data: isApprovedForAll, dataUpdatedAt, refetch: refetchApproval, isError: isReadApprovalError, error: readApprovalError } = useReadContract({
     address: tokenAddress,
     abi: parseAbi([
@@ -133,8 +129,6 @@ export default function Airdrop() {
       gcTime: 0, // don't cache the data
     }
   })
-
-  console.log('isApprovedForAll', isApprovedForAll, isReadApprovalError, readApprovalError)
 
   const {data: balance, isError: isBalanceError} = useReadContract({
     address: tokenAddress!,
@@ -247,6 +241,7 @@ export default function Airdrop() {
     const { filteredAddresses } = await removeContractAddresses({addresses: allAddresses, publicClient});
     setParsingAddresses(false);
     setNumberOfAddresses(filteredAddresses.length);
+    setEthereumAddresses(filteredAddresses);
   }, []);
 
   const { getRootProps, getInputProps } = useDropzone({ onDrop, accept: {
